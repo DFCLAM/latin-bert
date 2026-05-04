@@ -1,4 +1,5 @@
 import argparse, sys
+from pathlib import Path
 from cltk.tokenizers.lat.lat import LatinWordTokenizer as WordTokenizer
 from cltk.tokenizers.lat.lat import LatinPunktSentenceTokenizer as SentenceTokenizer
 from tensor2tensor.data_generators import text_encoder
@@ -288,6 +289,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-b', '--bertPath', help='path to pre-trained BERT', required=True)
 	parser.add_argument('-t', '--tokenizerPath', help='path to Latin WordPiece tokenizer', required=True)
+	parser.add_argument('-i', '--inputFile', help = 'path latin text input instead of default (one sentence per line)', required = False)
 	
 	args = vars(parser.parse_args())
 
@@ -296,7 +298,11 @@ if __name__ == "__main__":
 
 	bert=LatinBERT(tokenizerPath=tokenizerPath, bertPath=bertPath)
 
-	sents=["arma virumque cano", "arma gravi numero violentaque bella parabam"]
+	if args['inputFile']:
+		with Path(args['inputFile']).open('r') as fp:
+			sents = fp.readlines()
+	else:
+		sents = ["arma virumque cano", "arma gravi numero violentaque bella parabam"]
 	
 	bert_sents=bert.get_berts(sents)
 
