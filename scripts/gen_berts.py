@@ -244,8 +244,33 @@ def convert_to_toks(sents):
 		text=data.lower()
 
 		sents=sent_tokenizer.tokenize(text)
+
+		# for sent in sents:
+		# 	tokens=word_tokenizer.tokenize(sent)
+		# 	filt_toks=[]
+		# 	filt_toks.append("[CLS]")
+		# 	for tok in tokens:
+		# 		if tok != "":
+		# 			filt_toks.append(tok)
+		# 	filt_toks.append("[SEP]")
+
+		# 	all_sents.append(filt_toks)
+
+		# The commented-out original code above causes, with my corpus, errors like the one below:
+		# RuntimeError: The expanded size of the tensor (574) must match the existing size (512) at non-singleton dimension 1.
+		# To avoid it, iIhave to split tokens arrays if they are longer than 512 items.
+
+		tokens_array = []
+
+		max_tokens_len = 256
 		for sent in sents:
 			tokens=word_tokenizer.tokenize(sent)
+			while len(tokens) > max_tokens_len:
+				tokens_array.append(tokens[:max_tokens_len])
+				tokens = tokens[max_tokens_len:]
+			tokens_array.append(tokens)
+
+		for tokens in tokens_array:
 			filt_toks=[]
 			filt_toks.append("[CLS]")
 			for tok in tokens:
@@ -254,6 +279,7 @@ def convert_to_toks(sents):
 			filt_toks.append("[SEP]")
 
 			all_sents.append(filt_toks)
+
 
 	return all_sents
 

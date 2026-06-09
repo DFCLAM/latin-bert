@@ -2,6 +2,7 @@ from scripts.gen_berts import *
 from pathlib import Path
 import re
 import json
+import traceback
 
 workspace_path = Path('~/Development/digital-latin/2026-digital-latin-iii/wsi/python/workspace').expanduser()
 result_base_path = workspace_path / 'bert'
@@ -55,6 +56,18 @@ def search(term : str):
                 bert_sents = bert.get_berts([text])
             except RuntimeError as e:
                 print (e)
+                traceback.print_exc()
+                print ('trying with single paragraphs')
+                sents = []
+                for paragraph_path in sorted((dir_path / 'paragraphs').iterdir()):
+                    with paragraph_path.open('r') as paragraph_fp:
+                        sents.append(paragraph_fp.read().strip())
+                try:
+                    bert_sents = bert.get_berts(sents)
+                except RuntimeError as e1:
+                    print (e1)
+                    traceback.print_exc()
+                    print ('I don\'t know what to do anymore!')
                 continue
 
             result_obj[dir_path.name] = {'sentences' : []}
@@ -80,5 +93,5 @@ def search(term : str):
 
             print ('done!')
 
-# search('maneries')
-search('appositio')
+search('maneries')
+# search('appositio')
