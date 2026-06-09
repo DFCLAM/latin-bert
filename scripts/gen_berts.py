@@ -262,7 +262,7 @@ def convert_to_toks(sents):
 
 		tokens_array = []
 
-		max_tokens_len = 256
+		max_tokens_len = 352
 		for sent in sents:
 			tokens=word_tokenizer.tokenize(sent)
 			while len(tokens) > max_tokens_len:

@@ -24,10 +24,9 @@ def path_comparator(path : Path):
         return int(m.group())
     return -1
 
-def search(term : str):
+def search(terms : list[str]):
 
-    term = term.strip().lower()
-    result_path = result_base_path / f'bert_search_term__{term}.json'
+    result_path = result_base_path / f'bert_search_term__{"-".join(terms)}.json'
 
     # per-document incremental job
     if result_path.exists():
@@ -48,7 +47,13 @@ def search(term : str):
         with (dir_path / 'text.txt').open('r') as text_fp:
             text = text_fp.read()
 
-        if term in text.lower():
+        text_matches = False
+        for term in terms:
+            if term in text.lower():
+                text_matches = True
+                break
+
+        if text_matches:
 
             print (f'\nProcessing {dir_path.name}...')
 
@@ -79,7 +84,7 @@ def search(term : str):
                 embeddings = []
                 for (token, embedding) in sent:
                     embeddings.append({'token': token, 'embedding' : embedding.tolist()})
-                    if token == term:
+                    if token in terms:
                         term_found = True
                         sentence['term_indexes'].append(term_pos)
                     term_pos += 1
@@ -93,5 +98,5 @@ def search(term : str):
 
             print ('done!')
 
-search('maneries')
-# search('appositio')
+search(['maneries','maneriei','maneriebus'])
+# search(['appositio','appositione','appositionem','appositiones','appositionibus'])
