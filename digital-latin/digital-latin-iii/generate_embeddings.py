@@ -17,33 +17,68 @@ bert=LatinBERT(tokenizerPath=str(Path(__file__).parent.parent.parent / 'models/s
 #         for (token, bert) in sent:
 #             print("%s\t%s" % ( token, ' '.join(["%.5f" % x for x in bert])))
 
-def search(term : str, context_sentences_window_radius : int = 0):
-    result_path = result_base_path / f'bert_search_term__{term}__paragraphs_context_window__{context_sentences_window_radius}.json'
-    if not result_path.exists():
-        result_obj = {}
-        for dir in (workspace_path / 'alim').iterdir():
-            if not dir.is_dir():
-                continue
-            for paragraph_path in sorted((dir / 'paragraphs').iterdir()):
-                with paragraph_path.open('r') as paragraph_fp:
-                    text = paragraph_fp.read()
-                    if term.lower() in text.lower():
-                        if not dir.name in result_obj:
-                            result_obj[dir.name] = {}
-                        paragraph_start_index = max(0, int(paragraph_path.name[10:16]) - context_sentences_window_radius)
-                        paragraph_stop_index = int(paragraph_path.name[10:16]) + context_sentences_window_radius + 1
-                        sents = []
-                        for paragraph_index in range(paragraph_start_index, paragraph_stop_index):
-                            sentence_path = dir / 'paragraphs' / f'paragraph_{paragraph_index:06}.txt'
-                            if sentence_path.exists():
-                                with sentence_path.open('r') as sentence_fp:
-                                    sents.append(sentence_fp.read())
-                        result_obj[dir.name][paragraph_path.name] = {'sentences' : sents, 'bert' : []}
-                        bert_sents = bert.get_berts(sents)
-                        for sent in bert_sents:
-                            for (token, embedding) in sent:
-                                result_obj[dir.name][paragraph_path.name]['bert'].append({'token': token, 'embedding' : embedding.tolist()})
-        with result_path.open('w') as result_fp:
-            json.dump(result_obj, result_fp, indent=4)
+def path_comparator(path : Path):
+    m = re.search(r'\d+', path.name)
+    if m:
+        return int(m.group())
+    return -1
 
-search('maneries', 3)
+def search(term : str):
+
+    term = term.strip().lower()
+    result_path = result_base_path / f'bert_search_term__{term}.json'
+
+    # per-document incremental job
+    if result_path.exists():
+        with result_path.open('r') as result_fp:
+            result_obj = json.load(result_fp)
+    else:
+        result_obj = {}
+
+    for dir_path in sorted((workspace_path / 'alim').iterdir(), key = path_comparator):
+        
+        if not dir_path.is_dir():
+            continue
+
+        if dir_path.name in result_obj:
+            print (f'\nSkipping already present {dir_path.name}...')
+            continue
+
+        with (dir_path / 'text.txt').open('r') as text_fp:
+            text = text_fp.read()
+
+        if term in text.lower():
+
+            print (f'\nProcessing {dir_path.name}...')
+
+            try:
+                bert_sents = bert.get_berts([text])
+            except RuntimeError as e:
+                print (e)
+                continue
+
+            result_obj[dir_path.name] = {'sentences' : []}
+            term_occurrence_count = 0
+            for sent_index, sent in enumerate(bert_sents):
+                sentence = {'index' : sent_index, 'term_indexes' : []}
+                term_found = False
+                term_pos = 0
+                embeddings = []
+                for (token, embedding) in sent:
+                    embeddings.append({'token': token, 'embedding' : embedding.tolist()})
+                    if token == term:
+                        term_found = True
+                        sentence['term_indexes'].append(term_pos)
+                    term_pos += 1
+                if term_found:
+                    sentence['embeddings'] = embeddings
+                    result_obj[dir_path.name]['sentences'].append(sentence)
+
+            # save partial result
+            with result_path.open('w') as result_fp:
+                json.dump(result_obj, result_fp, indent=4)
+
+            print ('done!')
+
+# search('maneries')
+search('appositio')
