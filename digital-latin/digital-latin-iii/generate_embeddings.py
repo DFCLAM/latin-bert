@@ -1,5 +1,6 @@
 from scripts.gen_berts import *
 from pathlib import Path
+import pickle
 import re
 import json
 import traceback
@@ -25,6 +26,8 @@ def path_comparator(path : Path):
     return -1
 
 def search(terms : list[str]):
+
+    print (f'\n\nSEARCHING FOR TERMS: {",".join(terms)}')
 
     result_path = result_base_path / f'bert_search_term__{"-".join(terms)}.json'
 
@@ -56,24 +59,33 @@ def search(terms : list[str]):
         if text_matches:
 
             print (f'\nProcessing {dir_path.name}...')
-
-            try:
-                bert_sents = bert.get_berts([text])
-            except RuntimeError as e:
-                print (e)
-                traceback.print_exc()
-                print ('trying with single paragraphs')
-                sents = []
-                for paragraph_path in sorted((dir_path / 'paragraphs').iterdir()):
-                    with paragraph_path.open('r') as paragraph_fp:
-                        sents.append(paragraph_fp.read().strip())
+            
+            bert_cache_path = dir_path / 'bert_cache.pyc'
+            if bert_cache_path.exists():
+                print('\trestoring bert data from cache')
+                with bert_cache_path.open('rb') as bert_cache_fp:
+                    bert_sents = pickle.load(bert_cache_fp)
+            else:
                 try:
-                    bert_sents = bert.get_berts(sents)
-                except RuntimeError as e1:
-                    print (e1)
+                    bert_sents = bert.get_berts([text])
+                except RuntimeError as e:
+                    print (e)
                     traceback.print_exc()
-                    print ('I don\'t know what to do anymore!')
-                continue
+                    print ('trying with single paragraphs')
+                    sents = []
+                    for paragraph_path in sorted((dir_path / 'paragraphs').iterdir()):
+                        with paragraph_path.open('r') as paragraph_fp:
+                            sents.append(paragraph_fp.read().strip())
+                    try:
+                        bert_sents = bert.get_berts(sents)
+                    except RuntimeError as e1:
+                        print (e1)
+                        traceback.print_exc()
+                        print ('I don\'t know what to do anymore!')
+                    continue
+
+                with bert_cache_path.open('wb') as bert_cache_fp:
+                    pickle.dump(bert_sents, bert_cache_fp)
 
             result_obj[dir_path.name] = {'sentences' : []}
             term_occurrence_count = 0
@@ -98,5 +110,8 @@ def search(terms : list[str]):
 
             print ('done!')
 
-search(['maneries','maneriei','maneriebus'])
+# search(['maneries','maneriei','maneriebus'])
 # search(['appositio','appositione','appositionem','appositiones','appositionibus'])
+for term in ['appositio','appositione','appositionem','appositiones','appositionibus','maneries','maneriei','maneriebus']:
+    search([term])
+
