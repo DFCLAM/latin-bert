@@ -71,17 +71,6 @@ def search(terms : list[str]):
                 except RuntimeError as e:
                     print (e)
                     traceback.print_exc()
-                    print ('trying with single paragraphs')
-                    sents = []
-                    for paragraph_path in sorted((dir_path / 'paragraphs').iterdir()):
-                        with paragraph_path.open('r') as paragraph_fp:
-                            sents.append(paragraph_fp.read().strip())
-                    try:
-                        bert_sents = bert.get_berts(sents)
-                    except RuntimeError as e1:
-                        print (e1)
-                        traceback.print_exc()
-                        print ('I don\'t know what to do anymore!')
                     continue
 
                 with bert_cache_path.open('wb') as bert_cache_fp:
@@ -110,8 +99,15 @@ def search(terms : list[str]):
 
             print ('done!')
 
-# search(['maneries','maneriei','maneriebus'])
-# search(['appositio','appositione','appositionem','appositiones','appositionibus'])
-for term in ['appositio','appositione','appositionem','appositiones','appositionibus','maneries','maneriei','maneriebus']:
+for term in ['appositio','appositione','appositionem','appositiones',
+             'appositionibus','maneries','maneriei','maneriebus',
+             'mutatio','mutatione','mutationem','mutationes',
+             'terminatio','terminationes','terminatione','terminationem','terminationibus','terminationis',
+             'dispositio','dispositione','dispositionem','dispositionis','dispositiones','dispositionibus',
+             'prologus','prologum','prologi',
+             'dictamen','dictaminis','dictamine','dictaminum','dictaminibus',
+             'color','colore','colores','coloris','coloribus','colorem','colorum',
+             'modo','modum','modis','modus','modi','modos','modorum',
+             ]:
     search([term])
 
