@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class LatinBERT():
 
-	def __init__(self, tokenizerPath=None, bertPath=None):
+	def __init__(self, tokenizerPath=None, bertPath=None, max_tokens_len : int = 512):
 		encoder = text_encoder.SubwordTextEncoder(tokenizerPath)
 		self.wp_tokenizer = LatinTokenizer(encoder)
 		self.model = BertLatin(bertPath=bertPath)
@@ -138,7 +138,22 @@ class LatinBERT():
 
 
 	def get_berts(self, raw_sents):
-		sents=convert_to_toks(raw_sents)
+		max_tokens_len : int = 512 # Default size
+		tries = 5
+		for n in range(tries):
+			try:
+				sents=convert_to_toks(raw_sents, max_tokens_len)
+				return self.get_berts_sent_toks(sents)
+			except RuntimeError as e:
+				if n == (tries - 1):
+					raise e
+				print (e)
+				print (f'Reducing by a reasonable amount from {max_tokens_len} to ', end='')
+				max_tokens_len = int(max_tokens_len * 0.75)
+				print (max_tokens_len)
+				continue
+	
+	def get_berts_sent_toks(self, sents):
 		batch_size=32
 		batched_data, batched_mask, batched_transforms, ordering=self.get_batches(sents, batch_size, self.wp_tokenizer)
 
@@ -177,7 +192,7 @@ class LatinBERT():
 			bert_sents.append(bert_sent)
 
 		return bert_sents
-
+			
 
 
 
@@ -233,7 +248,7 @@ class LatinTokenizer():
 
 		return wp_tokens
 
-def convert_to_toks(sents):
+def convert_to_toks(sents, max_tokens_len : int):
 
 	sent_tokenizer = SentenceTokenizer()
 	word_tokenizer = WordTokenizer()
@@ -262,7 +277,6 @@ def convert_to_toks(sents):
 
 		tokens_array = []
 
-		max_tokens_len = 352
 		for sent in sents:
 			tokens=word_tokenizer.tokenize(sent)
 			while len(tokens) > max_tokens_len:

@@ -5,7 +5,7 @@ import re
 import json
 import traceback
 
-workspace_path = Path('~/Development/digital-latin/2026-digital-latin-iii/wsi/python/workspace').expanduser()
+workspace_path = Path('~/Development/digital-latin/2026-digital-latin-iii/wsi/workspace').expanduser()
 result_base_path = workspace_path / 'bert'
 result_base_path.mkdir(exist_ok=True)
 
